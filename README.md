@@ -27,7 +27,7 @@ Mode explanation :
 ## Configuration file  
 Very simple :  
 * each line starting with # is a comment line  
-* others line format <data_name>;<regex>;  
+* others line format ```<data_name>;<regex>;```  
   
 Script use each non commented line as a data field to extract from log based on the corresponding regex. If no data match the field output is '-'.  
 
