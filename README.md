@@ -1,7 +1,7 @@
 # PyLogParser  
 
 ## NEW FEATURES WITH 0.2  
-You can now choose between flat file output and SQLite3 DB file output. You just need to use the ```-db <db_name>``` specify the name of your log table inside the DB. If the table already exist it's delete.  
+You can now choose between flat file output and SQLite3 DB file output. You just need to use the ```-db <db_name>``` option to specify the name of your log table inside the DB. If the table already exist it's delete.  
 
 NEXT IMPROVEMENT : ability to append to an existing flat file or DB.
 
