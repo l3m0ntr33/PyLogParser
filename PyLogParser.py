@@ -3,8 +3,10 @@
 import sys, re
 from geoip import geolite2
 import sqlite3
+from dateutil.parser import parse
+import datetime
 
-version="0.2"
+version="0.3"
 separator = "|"
 logfile=""
 conffile=""
@@ -13,6 +15,7 @@ dbname=""
 outformat="flat"
 mode="standard"
 gip="no"
+dateparam="no"
 
 def usage():
 	print "PyLogParser v%s - Hugo RIFFLET - @l3m0ntr33" % (version)
@@ -27,11 +30,12 @@ def usage():
 	print "	test : step by step parsing"
 	print "-s : define separator char, '|' by default"
 	print "-geoip : add geolocation data to regex field name starting with 'ip'"
+	print "-date : try to parse the date for fields name starting with 'date' in a standard format using dateutil"
 	print ""
 
 def getparam():
 	i = 0
-	global logfile, outputfile, conffile, mode, separator, gip, outformat, dbname
+	global logfile, outputfile, conffile, mode, separator, gip, outformat, dbname, dateparam
 	for param in sys.argv:
 		precparam = sys.argv[i-1]
 		if precparam == "-i":
@@ -49,6 +53,8 @@ def getparam():
 			dbname = param
 		if precparam == "-geoip":
 			gip="yes"
+		if precparam == "-date":
+			dateparam="yes"
 		i=i+1
 
 def checkparam():
@@ -153,7 +159,7 @@ def initdb():
 		table_fields = table_fields + key + " TEXT,"
 		#IP GEOLOCATION ADDON
 		if (gip == "yes") and (re.search(r'^ip',key) is not None):
-			table_fields = table_fields + key + "_country" + " TEXT," + key + "_continent" + " TEXT," + key + "_timezone" + " TEXT,"
+			table_fields = table_fields + key + "_country" + " TEXT," + key + "_continent" + " TEXT," + key + "_timezone" + " TEXT," + key + "_lat" + " TEXT," + key + "_long" + " TEXT,"
 	table_fields = table_fields[:-1]
 	
 	create_table = "CREATE TABLE " + dbname + "(" + table_fields + ");"
@@ -174,7 +180,7 @@ def initfile():
 
 		#IP GEOLOCATION ADDON
 		if (gip == "yes") and (re.search(r'^ip',key) is not None):
-			firstline = firstline + key + "_country" + separator + key + "_continent" + separator + key + "_timezone" + separator
+			firstline = firstline + key + "_country" + separator + key + "_continent" + separator + key + "_timezone" + separator + key + "_lat" + separator + key + "_long" + separator
 	fileoutput.write(firstline + "\n")
 	if mode == "verbose":
 		print firstline
@@ -194,6 +200,8 @@ def outdb(input_dic):
 			data_list.append(input_dic[key+"_country"])
 			data_list.append(input_dic[key+"_continent"])
 			data_list.append(input_dic[key+"_timezone"])
+			data_list.append(input_dic[key+"_lat"])
+			data_list.append(input_dic[key+"_long"])
 	dbcon.execute("insert into " + dbname + " values (" + ('?,' * len(data_list))[:-1] + ")", data_list)
 
 def outfile(input_dic):
@@ -205,7 +213,7 @@ def outfile(input_dic):
 			fileoutput.write(input_dic[key+"_timezone"] + separator)
 	fileoutput.write("\n")
 
-def parse(logline):
+def parseline(logline):
 	result = {}
 	if mode == "test":
 		print "LOG LINE :"
@@ -214,15 +222,19 @@ def parse(logline):
 		match = re.search(r"" + conf[key],logline)
 		try:
 			regres = match.group(1)
-			result[key] = regres
+			#DATE PARSING ADDON
+			if (dateparam == "yes") and (re.search(r'^date',key) is not None):
+				result[key] = parse(regres, fuzzy=True).isoformat()
+			else:
+				result[key] = regres
 		except:
 			regres = "-"
 			result[key] = regres
 		if mode == "test":
 			print "Name: " + key + " - Regex: " + conf[key] 
-			print "Result: " + regres
+			print "Result: " + result[key]
 			raw_input()
-		
+
 		#IP GEOLOCATION ADDON
 		if (gip == "yes") and (re.search(r'^ip',key) is not None):
 			#CONTROL INPUT FIELD IS IP ADDR
@@ -241,14 +253,24 @@ def parse(logline):
 						result[key+"_timezone"] = geoloc.timezone
 					else:
 						result[key+"_timezone"] = "-"
+					if geoloc.location is not None:
+						result[key+"_lat"] = geoloc.location[0]
+						result[key+"_long"] = geoloc.location[1]
+					else:
+						result[key+"_lat"] = "-"
+						result[key+"_long"] = "-"
 				else:
 					result[key+"_country"] = "-"
 					result[key+"_continent"] = "-"
 					result[key+"_timezone"] = "-"
+					result[key+"_lat"] = "-"
+					result[key+"_long"] = "-"
 			else:
 				result[key+"_country"] = "-"
 				result[key+"_continent"] = "-"
 				result[key+"_timezone"] = "-"
+				result[key+"_lat"] = "-"
+				result[key+"_long"] = "-"
 			if mode == "test":
 				print "Name: " + key + "_country - Geolite2" 
 				print "Result: " + result[key+"_country"]
@@ -258,6 +280,10 @@ def parse(logline):
 				raw_input()
 				print "Name: " + key + "_timezone - Geolite2" 
 				print "Result: " + result[key+"_timezone"]
+				print "Name: " + key + "_lat - Geolite2" 
+				print "Result: " + result[key+"_lat"]
+				print "Name: " + key + "_long - Geolite2" 
+				print "Result: " + result[key+"_long"]
 				raw_input()
 
 	if mode == "test":
@@ -331,7 +357,7 @@ if mode == "standard":
 	update_progress(prog)
 
 for line in filelog.readlines():
-	parse(line)
+	parseline(line)
 	if mode == "standard":
 		i = i+1
 		prog = float(i) / float(loglinecount)
