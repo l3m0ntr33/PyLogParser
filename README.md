@@ -1,16 +1,23 @@
 # PyLogParser  
 
+## NEW FEATURES WITH 0.2  
+You can now choose between flat file output and SQLite3 DB file output. You just need to use the ```-db <db_name>``` specify the name of your log table inside the DB. If the table already exist it's delete.  
+
+NEXT IMPROVEMENT : ability to append to an existing flat file or DB.
+
 ## Description    
 This short script has been designed to help when you need to realize fast investigation from raw logs without having some ELK or SIEM tool for example. Usually I use combination of grep, awk and sed CLI tools to extract useful information with always the same input or output.  
 I use this script to extract all useful information from logs in one command line to a CSV like format file. It is based on a configuration file where you can store all your regular expressions and re-use them when you need just by uncomment the lines you need.  
   
 The script just take you're input log file and parse each line with selected regular expression and store the result in your output file with the selected seperation character.  
-I also add an optionnal geo-ip module based on geolite2 Python module wich add geolocation data to each column/regex's name that begin with "ip".  
+I also add an optionnal geo-ip module based on geolite2 Python module wich add geolocation data to each column/regex's name that begin with "ip".
 
 ## Usage  
 ```
 Usage: PyLogParser.py -i <input log file> -o <output log file> -c <parsing conf file> [OPTIONS]
 Options:
+-db <table_name> : table name for output in SQLite3 DB
+-append : append to existing output file, db or flat log file (NOT IMPLEMENTED YET)
 -m : define mode
 	standard (default) : only statistics, direct output to file
 	verbose : print results on screen

@@ -2,12 +2,15 @@
 
 import sys, re
 from geoip import geolite2
+import sqlite3
 
-version="0.1"
+version="0.2"
 separator = "|"
 logfile=""
 conffile=""
 outputfile=""
+dbname=""
+outformat="flat"
 mode="standard"
 gip="no"
 
@@ -16,6 +19,8 @@ def usage():
 	print "----------------------------------------------------------"
 	print "Usage: %s -i <input log file> -o <output log file> -c <parsing conf file> [OPTIONS]" % (sys.argv[0])
 	print "Options:"
+	print "-db <table_name> : table name for output in SQLite DB"
+	print "-append : append to existing output file, db or flat log file (NOT IMPLEMENTED YET)"
 	print "-m : define mode"
 	print "	standard (default) : only statistics, direct output to file"
 	print "	verbose : print results on screen"
@@ -26,7 +31,7 @@ def usage():
 
 def getparam():
 	i = 0
-	global logfile, outputfile, conffile, mode, separator, gip
+	global logfile, outputfile, conffile, mode, separator, gip, outformat, dbname
 	for param in sys.argv:
 		precparam = sys.argv[i-1]
 		if precparam == "-i":
@@ -39,6 +44,9 @@ def getparam():
 			mode = param
 		if precparam == "-s":
 			separator = param
+		if precparam == "-db":
+			outformat = "db"
+			dbname = param
 		if precparam == "-geoip":
 			gip="yes"
 		i=i+1
@@ -71,12 +79,20 @@ def openfiles():
 	        print "I/O Error(%s) : %s" % (errno, strerror)
 		sys.exit(1)	
 	print "Opening output file...",
-	try:
-		fileoutput = open(outputfile, "w")
-		print "OK"
-	except IOError, (errno, strerror):
-	        print "I/O Error(%s) : %s" % (errno, strerror)
-		sys.exit(1)
+	if outformat == "flat":
+		try:
+			fileoutput = open(outputfile, "w")
+			print "OK"
+		except IOError, (errno, strerror):
+		        print "I/O Error(%s) : %s" % (errno, strerror)
+			sys.exit(1)
+	if outformat == "db":
+		try:
+			fileoutput = sqlite3.connect(outputfile)
+			print "OK"
+		except sqlite3.error, e:
+		        print "SQLite3 Error : %s" % (e)
+			sys.exit(1)
 	print "Opening config file...",
 	try:
 		fileconf = open(conffile, "r")
@@ -88,6 +104,8 @@ def openfiles():
 def closefiles():
 	print "Closing files...",
 	global filelog, fileoutput, fileconf
+	if outformat == "db":
+		fileoutput.commit()
 	try:
 		filelog.close()
 		fileoutput.close()
@@ -118,6 +136,37 @@ def confread():
 					print ""
 	print "------------------------------------------------------"
 
+def init():
+	if outformat == "flat":
+		initfile()
+	if outformat == "db":
+		initdb()
+def initdb():
+	global dbcon
+	try:
+		dbcon = fileoutput.cursor()
+	except sqlite3.error, e:
+		print "SQLite Error : %s" % (e)
+		sys.exit(1)
+	table_fields = ""
+	for key in conf.keys():
+		table_fields = table_fields + key + " TEXT,"
+		#IP GEOLOCATION ADDON
+		if (gip == "yes") and (re.search(r'^ip',key) is not None):
+			table_fields = table_fields + key + "_country" + " TEXT," + key + "_continent" + " TEXT," + key + "_timezone" + " TEXT,"
+	table_fields = table_fields[:-1]
+	
+	create_table = "CREATE TABLE " + dbname + "(" + table_fields + ");"
+	drop_table = "DROP TABLE IF EXISTS " + dbname + ";"
+	try:
+		dbcon.execute(drop_table)
+		dbcon.execute(create_table)
+		fileoutput.commit()
+	except sqlite3.Error, e:
+		print "SQLite Error : %s" % (e)
+		sys.exit(1)
+
+
 def initfile():
 	firstline = ""
 	for key in conf.keys():
@@ -125,17 +174,39 @@ def initfile():
 
 		#IP GEOLOCATION ADDON
 		if (gip == "yes") and (re.search(r'^ip',key) is not None):
-			firstline = firstline + key + "-country" + separator + key + "-continent" + separator + key + "-timezone" + separator
+			firstline = firstline + key + "_country" + separator + key + "_continent" + separator + key + "_timezone" + separator
 	fileoutput.write(firstline + "\n")
 	if mode == "verbose":
 		print firstline
 		raw_input()
 
-def outfile(outline):
-	fileoutput.write(outline + "\n")
+def output(input_dic):
+	if outformat == "flat":
+		outfile(input_dic)
+	if outformat == "db":
+		outdb(input_dic)
+
+def outdb(input_dic):
+	data_list = []
+	for key in conf.keys():
+		data_list.append(input_dic[key])
+		if (gip == "yes") and (re.search(r'^ip',key) is not None):
+			data_list.append(input_dic[key+"_country"])
+			data_list.append(input_dic[key+"_continent"])
+			data_list.append(input_dic[key+"_timezone"])
+	dbcon.execute("insert into " + dbname + " values (" + ('?,' * len(data_list))[:-1] + ")", data_list)
+
+def outfile(input_dic):
+	for key in conf.keys():
+		fileoutput.write(input_dic[key] + separator)
+		if (gip == "yes") and (re.search(r'^ip',key) is not None):
+			fileoutput.write(input_dic[key+"_country"] + separator)
+			fileoutput.write(input_dic[key+"_continent"] + separator)
+			fileoutput.write(input_dic[key+"_timezone"] + separator)
+	fileoutput.write("\n")
 
 def parse(logline):
-	result = ""
+	result = {}
 	if mode == "test":
 		print "LOG LINE :"
 		print logline
@@ -143,10 +214,10 @@ def parse(logline):
 		match = re.search(r"" + conf[key],logline)
 		try:
 			regres = match.group(1)
-			result = result + regres + separator
+			result[key] = regres
 		except:
 			regres = "-"
-			result = result + regres + separator
+			result[key] = regres
 		if mode == "test":
 			print "Name: " + key + " - Regex: " + conf[key] 
 			print "Result: " + regres
@@ -159,27 +230,45 @@ def parse(logline):
 				geoloc = geolite2.lookup(regres)
 				if geoloc is not None:
 					if geoloc.country is not None:
-						result = result + geoloc.country + separator
+						result[key+"_country"] = geoloc.country
 					else:
-						result + "-" + separator
+						result[key+"_country"] = "-"
 					if geoloc.continent is not None:
-						result = result + geoloc.continent + separator
+						result[key+"_continent"] = geoloc.continent
 					else:
-						result + "-" + separator
+						result[key+"_continent"] = "-"
 					if geoloc.timezone is not None:
-						result = result + geoloc.timezone + separator
+						result[key+"_timezone"] = geoloc.timezone
 					else:
-						result + "-" + separator
+						result[key+"_timezone"] = "-"
 				else:
-					result = result + "-" + separator + "-" + separator + "-" + separator
+					result[key+"_country"] = "-"
+					result[key+"_continent"] = "-"
+					result[key+"_timezone"] = "-"
 			else:
-				result = result + "-" + separator + "-" + separator + "-" + separator
+				result[key+"_country"] = "-"
+				result[key+"_continent"] = "-"
+				result[key+"_timezone"] = "-"
+			if mode == "test":
+				print "Name: " + key + "_country - Geolite2" 
+				print "Result: " + result[key+"_country"]
+				raw_input()
+				print "Name: " + key + "_continent - Geolite2" 
+				print "Result: " + result[key+"_continent"]
+				raw_input()
+				print "Name: " + key + "_timezone - Geolite2" 
+				print "Result: " + result[key+"_timezone"]
+				raw_input()
 
 	if mode == "test":
+		for res in result.keys():
+			print result[res] + separator,
+		print ""
 		print "------------------------------------------------------"
 	if mode == "verbose":
-		print result
-	outfile(result)
+		for res in result.keys():
+			print result[res] + separator,
+	output(result)
 
 def filelog_len():
 	global loglinecount
@@ -228,7 +317,7 @@ openfiles()
 
 confread()
 
-initfile()
+init()
 
 filelog_len()
 
