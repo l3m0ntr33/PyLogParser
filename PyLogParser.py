@@ -20,24 +20,24 @@ dateparam="no"
 loopparam="no"
 
 def usage():
-	print "PyLogParser v%s - Hugo RIFFLET - @l3m0ntr33" % (version)
-	print "----------------------------------------------------------"
-	print "Usage: %s -i <input log file> -o <output file> -c <parsing conf file> [OPTIONS]" % (sys.argv[0])
-	print "- Default output format is text file. Use -db option if you want a SQLite3 DB output."
-	print "- If the output file or DB already exist, data is append to the file/DB. For DB output if schema of existing table is different you need to confirm to erase existing table."
-	print ""
-	print "Options:"
-	print "-db <table_name> : table name for output in SQLite DB"
-	print "-m : define mode"
-	print "	standard (default) : only statistics, direct output to file or DB"
-	print "	verbose : print results of each parsed line on screen"
-	print "	test : step by step parsing for each line and regex"
-	print "	silent : silent mode, no output on console."
-	print "-s : define separator char for text file output, '|' by default"
-	print "-geoip : add geolocation data to regex fields names starting with 'ip'"
-	print "-date : try to parse the date for fields names starting with 'date' in a standard format using dateutil"
-	print "-loop : watch the file every second and only add new lines. Loop mode is always silent and append data if output file or DB already exist."
-	print ""
+	print("PyLogParser v%s - Hugo RIFFLET - @l3m0ntr33" % (version))
+	print("----------------------------------------------------------")
+	print("Usage: %s -i <input log file> -o <output file> -c <parsing conf file> [OPTIONS]" % (sys.argv[0]))
+	print("- Default output format is text file. Use -db option if you want a SQLite3 DB output.")
+	print("- If the output file or DB already exist, data is append to the file/DB. For DB output if schema of existing table is different you need to confirm to erase existing table.")
+	print("")
+	print("Options:")
+	print("-db <table_name> : table name for output in SQLite DB")
+	print("-m : define mode")
+	print("	standard (default) : only statistics, direct output to file or DB")
+	print("	verbose : print results of each parsed line on screen")
+	print("	test : step by step parsing for each line and regex")
+	print("	silent : silent mode, no output on console.")
+	print("-s : define separator char for text file output, '|' by default")
+	print("-geoip : add geolocation data to regex fields names starting with 'ip'")
+	print("-date : try to parse the date for fields names starting with 'date' in a standard format using dateutil")
+	print("-loop : watch the file every second and only add new lines. Loop mode is always silent and append data if output file or DB already exist.")
+	print("")
 
 def getparam():
 	i = 0
@@ -76,60 +76,60 @@ def checkparam():
 
 def modeintro():
 	if mode != "silent":
-		print "-----------------------------------------------------------"
-		print "PyLogParser v%s - Hugo RIFFLET - @l3m0ntr33" % (version)
-		print "-----------------------------------------------------------"
+		print("-----------------------------------------------------------")
+		print("PyLogParser v%s - Hugo RIFFLET - @l3m0ntr33" % (version))
+		print("-----------------------------------------------------------")
 	if mode == "standard":
-		print "                  STANDARD MODE                       "
+		print("                  STANDARD MODE                       ")
 	if mode == "verbose":
-		print "     VERBOSE MODE - Each result print on screen"
+		print("     VERBOSE MODE - Each result print on screen")
 	if mode == "test":
-		print "      TEST MODE - Line by line test for parsing"
+		print("      TEST MODE - Line by line test for parsing")
 	if mode != "silent":
-		print "-----------------------------------------------------------"
+		print("-----------------------------------------------------------")
 
 def openfiles():
 	if mode != "silent":
-		print "Opening input file...",
+		print("Opening input file...",)
 	global filelog, fileoutput, fileconf
 	try:
 		filelog = open(logfile, "r")
 		if mode != "silent":
-			print "OK"
+			print("OK")
 	except IOError, (errno, strerror):
-	        print "I/O Error(%s) : %s" % (errno, strerror)
+	        print("I/O Error(%s) : %s" % (errno, strerror)))
 		sys.exit(1)	
 	if mode != "silent":
-		print "Opening output file...",
+		print("Opening output file...",)
 	if outformat == "flat":
 		try:
 			fileoutput = open(outputfile, "a")
 			if mode != "silent":
-				print "OK"
+				print("OK"
 		except IOError, (errno, strerror):
-		        print "I/O Error(%s) : %s" % (errno, strerror)
+		        print("I/O Error(%s) : %s" % (errno, strerror)
 			sys.exit(1)
 	if outformat == "db":
 		try:
 			fileoutput = sqlite3.connect(outputfile)
 			if mode != "silent":
-				print "OK"
+				print("OK"
 		except sqlite3.error, e:
-		        print "SQLite3 Error : %s" % (e)
+		        print("SQLite3 Error : %s" % (e)
 			sys.exit(1)
 	if mode != "silent":
-		print "Opening config file...",
+		print("Opening config file...",
 	try:
 		fileconf = open(conffile, "r")
 		if mode != "silent":
-			print "OK"
+			print("OK"
 	except IOError, (errno, strerror):
-	        print "I/O Error(%s) : %s" % (errno, strerror)
+	        print("I/O Error(%s) : %s" % (errno, strerror)
 		sys.exit(1)
 
 def closefiles():
 	if mode != "silent":
-		print "Closing files...",
+		print("Closing files...",
 	global filelog, fileoutput, fileconf
 	if outformat == "db":
 		fileoutput.commit()
@@ -138,9 +138,9 @@ def closefiles():
 		fileoutput.close()
 		fileconf.close()
 		if mode != "silent":
-			print "OK"
+			print("OK"
 	except IOError, (errno, strerror):
-	        print "I/O Error(%s) : %s" % (errno, strerror)
+	        print("I/O Error(%s) : %s" % (errno, strerror)
 		sys.exit(1)
 
 def confread():
@@ -149,9 +149,9 @@ def confread():
 	conf = {}
 	confkeys = []
 	if mode != "silent":
-		print "------------------------------------------------------"
-		print "                 READING CONFIG FILE"
-		print "------------------------------------------------------"
+		print("------------------------------------------------------"
+		print("                 READING CONFIG FILE"
+		print("------------------------------------------------------"
 	for line in fileconf.readlines():
 		if re.search(r'^#',line) is None :
 			name = re.search(r'([^;]*);',line)
@@ -162,15 +162,15 @@ def confread():
 				conf[nametxt] = valuetxt
 				confkeys.append(nametxt)
 				if mode != "silent":
-					print "Regex found - Name: " + nametxt + " - Regex: " + valuetxt,
+					print("Regex found - Name: " + nametxt + " - Regex: " + valuetxt,
 				if (gip == "yes") and (re.search(r'^ip',nametxt) is not None):
 					if mode != "silent":
-						print " - IP GEOLOCATION ACTIVATED"
+						print(" - IP GEOLOCATION ACTIVATED"
 				else:
 					if mode != "silent":
-						print ""
+						print(""
 	if mode != "silent":
-		print "------------------------------------------------------"
+		print("------------------------------------------------------"
 
 def init():
 	if outformat == "flat":
@@ -183,7 +183,7 @@ def initdb():
 	try:
 		dbcon = fileoutput.cursor()
 	except sqlite3.error, e:
-		print "SQLite Error : %s" % (e)
+		print("SQLite Error : %s" % (e)
 		sys.exit(1)
 	#27/11/2015 : add permanent insert_time field
 	table_fields = "insert_time TEXT,"
@@ -211,8 +211,8 @@ def initdb():
 			#Table already exist
 			if not(testresult[0].lower() == create_table[:-1].lower()):
 				#Table has not the same schema
-				print "-> Table " + dbname + " already exist but has not the same schema."
-				print "-> Do you want to erase it ? (yes or no) ",
+				print("-> Table " + dbname + " already exist but has not the same schema."
+				print("-> Do you want to erase it ? (yes or no) ",
 				keyinput = raw_input()
 				if keyinput == "yes":
 					dbcon.execute(drop_table)
@@ -222,7 +222,7 @@ def initdb():
 					sys.exit(0)	
 		fileoutput.commit()
 	except sqlite3.Error, e:
-		print "SQLite Error : %s" % (e)
+		print("SQLite Error : %s" % (e)
 		closefiles()
 		sys.exit(1)
 
@@ -277,7 +277,7 @@ def outfile(input_dic):
 def parseline(logline):
 	result = {}
 	if mode == "test":
-		print "LOG LINE :"
+		print("LOG LINE :"
 		print logline
 	#27/11/2015 ADD PERMANENT insert_time FIELD
 	result['insert_time']=datetime.datetime.now().strftime('%Y-%m-%dT%H:%M:%S')
@@ -296,8 +296,8 @@ def parseline(logline):
 			regres = "-"
 			result[confkeys[index]] = regres
 		if mode == "test":
-			print "Name: " + confkeys[index] + " - Regex: " + conf[confkeys[index]] 
-			print "Result: " + result[confkeys[index]]
+			print("Name: " + confkeys[index] + " - Regex: " + conf[confkeys[index]] 
+			print("Result: " + result[confkeys[index]]
 			raw_input()
 
 		#IP GEOLOCATION ADDON
@@ -337,25 +337,25 @@ def parseline(logline):
 				result[confkeys[index]+"_lat"] = "-"
 				result[confkeys[index]+"_long"] = "-"
 			if mode == "test":
-				print "Name: " + confkeys[index] + "_country - Geolite2" 
-				print "Result: " + str(result[confkeys[index]+"_country"])
+				print("Name: " + confkeys[index] + "_country - Geolite2" 
+				print("Result: " + str(result[confkeys[index]+"_country"])
 				raw_input()
-				print "Name: " + confkeys[index] + "_continent - Geolite2" 
-				print "Result: " + str(result[confkeys[index]+"_continent"])
+				print("Name: " + confkeys[index] + "_continent - Geolite2" 
+				print("Result: " + str(result[confkeys[index]+"_continent"])
 				raw_input()
-				print "Name: " + confkeys[index] + "_timezone - Geolite2" 
-				print "Result: " + str(result[confkeys[index]+"_timezone"])
-				print "Name: " + confkeys[index] + "_lat - Geolite2" 
-				print "Result: " + str(result[confkeys[index]+"_lat"])
-				print "Name: " + confkeys[index] + "_long - Geolite2" 
-				print "Result: " + str(result[confkeys[index]+"_long"])
+				print("Name: " + confkeys[index] + "_timezone - Geolite2" 
+				print("Result: " + str(result[confkeys[index]+"_timezone"])
+				print("Name: " + confkeys[index] + "_lat - Geolite2" 
+				print("Result: " + str(result[confkeys[index]+"_lat"])
+				print("Name: " + confkeys[index] + "_long - Geolite2" 
+				print("Result: " + str(result[confkeys[index]+"_long"])
 				raw_input()
 
 	if mode == "test":
 		for res in result.keys():
 			print str(result[res]) + separator,
-		print ""
-		print "------------------------------------------------------"
+		print(""
+		print("------------------------------------------------------"
 	if mode == "verbose":
 		for res in result.keys():
 			print str(result[res]) + separator,
@@ -415,9 +415,9 @@ filelog_len()
 
 
 if mode == "standard":
-	print "                  BEGIN PROCESSING"
-	print "------------------------------------------------------"
-	print "Total line to parse : %s" % (loglinecount)
+	print("                  BEGIN PROCESSING"
+	print("------------------------------------------------------"
+	print("Total line to parse : %s" % (loglinecount)
 	i = 0
 	prog = 0.0
 	update_progress(prog)
@@ -447,6 +447,6 @@ while loopbit:
 			loopbit = False
 
 if mode == "standard":
-	print "------------------------------------------------------"
+	print("------------------------------------------------------"
 
 closefiles()
